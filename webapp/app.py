@@ -4,11 +4,9 @@ import io
 from skimage.io import imread
 import base64
 import matplotlib.pyplot as plt
-from werkzeug.utils import secure_filename
+# from werkzeug.utils import secure_filename
 from flask_cors import CORS, cross_origin
-
-import tensorflow as tf
-import tensorflow_hub as hub
+import requests
 
 import pandas as pd
 import numpy as np
@@ -27,11 +25,6 @@ app = Flask(__name__)
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', "jfif","tiff"])
 cors = CORS(app, allow_headers='Content-Type', CORS_SEND_WILDCARD=True)
 
-def load_model():
-    module_handle = "https://tfhub.dev/google/imagenet/mobilenet_v2_140_224/feature_vector/4"
-    module = hub.load(module_handle)
-    return module
-
 
 def load_data():
     with open("./webapp/data/final_data", "rb") as f:
@@ -40,7 +33,6 @@ def load_data():
 
 
 df = load_data()
-model = load_model()
 host = os.environ["ELASTIC_HOST"]
 print(host)
 
@@ -163,19 +155,14 @@ def get_base64_from_img(img_arr):
         figdata_png = base64.b64encode(figfile.getvalue()).decode("utf-8")
     return figdata_png
 
-def preprocess_img(img):
-  img = tf.image.resize_with_pad(img,224,224)
-  img = tf.image.convert_image_dtype(img, tf.float32)[tf.newaxis,...]
-  return img
 
+MODEL_URL = os.environ["IMAGE_MODEL_URL"]
 def get_image_vector(image):
-    img = image.copy()
-    img = preprocess_img(img)
-    features = model(img)
-    features = np.squeeze(features)
-    return features
-
-
+    dictToSend = {"image":image.tolist()}
+    res = requests.post(MODEL_URL, json=dictToSend)
+    print (('response from server:',res.text))
+    dictFromServer = res.json()
+    return dictFromServer["features"]
 
 if __name__ == '__main__':
    app.run(debug = True)

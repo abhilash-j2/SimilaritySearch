@@ -13,6 +13,7 @@ import tensorflow_hub as hub
 import pandas as pd
 import numpy as np
 import pickle
+import os
 
 import elasticsearch
 from elasticsearch import Elasticsearch, RequestsHttpConnection
@@ -40,7 +41,9 @@ def load_data():
 
 df = load_data()
 model = load_model()
-es = Elasticsearch([{"host":"3.12.152.249", "port":"9200"}])
+host = os.environ["ELASTIC_HOST"]
+print(host)
+es = Elasticsearch([{"host": host, "port":"9200"}])
 es.ping()
 
 def query_es(user_query):

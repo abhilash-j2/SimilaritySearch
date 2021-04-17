@@ -54,19 +54,23 @@ def query_es(user_query):
                         }
                     }
                 }
+    
+    cards = []
     try:    
         with Elasticsearch([{"host": host, "port":"9200"}]) as es: 
             res = es.search(index='similarity-search',body={"from":0,"size": 5,"query": script_query,"_source":["picture_id","product_id"]})
-    except Execption as e:
+            for dic in res['hits']['hits']:
+                prod_id = dic['_source']['product_id']
+                pic_id = dic['_source']['picture_id']
+                score = dic['_score']
+                picture = url_process_imgdict(df[df["picture_id"]==pic_id].to_dict("records")[0])
+                cards.append({"prod_id" : prod_id, "pic_id" : pic_id, "score":score, "img" : picture})
+
+    except Exception as e:
         print(e)
         
-    cards = []
-    for dic in res['hits']['hits']:
-        prod_id = dic['_source']['product_id']
-        pic_id = dic['_source']['picture_id']
-        score = dic['_score']
-        picture = url_process_imgdict(df[df["picture_id"]==pic_id].to_dict("records")[0])
-        cards.append({"prod_id" : prod_id, "pic_id" : pic_id, "score":score, "img" : picture})
+
+    
 
     return cards
 
@@ -81,7 +85,7 @@ def randomizer():
     # return "Homepageview"
     img_dict = get_random_image()
     mainimg = url_process_imgdict(img_dict)
-    with io.BytesIO(img_dict["picture"]["picture"]) as f
+    with io.BytesIO(img_dict["picture"]["picture"]) as f:
         user_query = imread(f)
     user_query = get_image_vector(user_query)
     card_data = query_es(user_query)
@@ -90,7 +94,7 @@ def randomizer():
                              mainimg = mainimg, card_data = card_data)
 
 def url_process_imgdict(img_dict):
-    with io.BytesIO(img_dict["picture"]["picture"]) as f
+    with io.BytesIO(img_dict["picture"]["picture"]) as f:
         img = imread(f)
     img = get_base64_from_img(img)
     return img 
@@ -99,7 +103,7 @@ def url_process_imgdict(img_dict):
 @app.route('/randomImage', methods=['get','POST'])
 def randomImage():
     img_dict = get_random_image()
-    with io.BytesIO(img_dict["picture"]["picture"]) as f
+    with io.BytesIO(img_dict["picture"]["picture"]) as f:
         byte_io = imread(f)
     # send_file(byte_io, attachment_filename='pic.png', mimetype='image/png')
     response = make_response(send_file(byte_io,mimetype='image/png'))

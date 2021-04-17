@@ -1,0 +1,10 @@
+<div class="row justify-content-center">
+    {% for card in card_data %}
+        <div class="card" style="width: 18rem;">
+            <img src="data:image/jpeg;base64,{{ card['img'] }}" class="card-img-top" alt="...">
+            <div class="card-body">
+            <p class="card-text">{{ card["score"] }}</p>
+            </div>
+        </div>
+    {% endfor %}
+</div>

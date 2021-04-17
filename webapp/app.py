@@ -57,7 +57,7 @@ def query_es(user_query):
                 prod_id = dic['_source']['product_id']
                 pic_id = dic['_source']['picture_id']
                 score = dic['_score']
-                picture = url_process_imgdict(df[df["picture_id"]==pic_id].to_dict("records")[0])
+                picture = url_process_imgdict(df[df["picture_id"]==pic_id].to_dict("records")[0]["picture"])
                 cards.append({"prod_id" : prod_id, "pic_id" : pic_id, "score":score, "img" : picture})
 
     except Exception as e:
@@ -83,23 +83,22 @@ def get_random_neighbours():
     nns = lookup_df[lookup_df["master_pi"] == master_pi]
     return nns
 
+
 def construct_card_data(nns):
     cards = []
+    nns = nns.merge(df, left_on="similar_pi", right_on="picture_id", how="inner")
     for row in nns.itertuples():
-        img_dict = get_image_for_pid(row.similar_pi)
-        img = url_process_imgdict(img_dict)
-
-        cards.append({"prod_id" : img_dict["product_id"], 
-                      "pic_id" : img_dict["picture_id"], 
+        cards.append({"prod_id" : row.product_id, 
+                      "pic_id" : row.picture_id, 
                       "score":row.similarity, 
-                      "img" : img})
+                      "img" : url_process_imgdict(row.picture)})
     return cards
 
 @app.route('/randomizer')
 def quick_randomizer():
     nns = get_random_neighbours()
     img_dict = get_image_for_pid(list(set(nns.master_pi))[0])
-    mainimg = url_process_imgdict(img_dict)
+    mainimg = url_process_imgdict(img_dict["picture"])
     card_data = construct_card_data(nns)
     return render_template('randomizer.html',pid=img_dict["product_id"]   ,
                              mainimg = mainimg, card_data = card_data)
@@ -118,7 +117,7 @@ def randomizer():
                              mainimg = mainimg, card_data = card_data)
 
 def url_process_imgdict(img_dict):
-    with io.BytesIO(img_dict["picture"]["picture"]) as f:
+    with io.BytesIO(img_dict["picture"]) as f:
         img = imread(f)
     img = get_base64_from_img(img)
     return img 

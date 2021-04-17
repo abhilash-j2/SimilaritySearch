@@ -1,0 +1,17 @@
+{% extends "index.html" %}
+
+{% block body %}
+    <h1> Uploader Page</h1>
+    <div class="row text-center input-group input-group-lg">
+        <form action="/upload" method="POST" enctype="multipart/form-data"> 
+            <input type="file" name="file"> 
+            <input type="submit" value="Upload"> 
+        </form>
+    </div>
+    
+    <div class="text-center" style="height: 450px;">  
+        <img style = " object-fit: contain; object-position: center;" src="data:image/jpeg;base64,{{ mainimg}}"> </img>   
+    </div>
+
+    {% include ["similar_images.html"] %}
+{% endblock %}

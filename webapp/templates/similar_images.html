@@ -1,9 +1,10 @@
 <div class="row justify-content-center">
     {% for card in card_data %}
-        <div class="card" style="width: 18rem;">
+        <div class="card text-center" style="width: 18rem;">
+            <p class="card-text display-6">{{ card["score"] }}</p>
             <img src="data:image/jpeg;base64,{{ card['img'] }}" class="card-img-top" alt="...">
             <div class="card-body">
-            <p class="card-text">{{ card["score"] }}</p>
+            <p class="card-text display-8">Product Id:{{ card["prod_id"] }}</p>
             </div>
         </div>
     {% endfor %}

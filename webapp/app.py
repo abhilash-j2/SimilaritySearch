@@ -43,8 +43,6 @@ df = load_data()
 model = load_model()
 host = os.environ["ELASTIC_HOST"]
 print(host)
-es = Elasticsearch([{"host": host, "port":"9200"}])
-es.ping()
 
 def query_es(user_query):
     script_query = {
@@ -56,8 +54,12 @@ def query_es(user_query):
                         }
                     }
                 }
-    res = es.search(index='similarity-search',body={"from":0,"size": 5,"query": script_query,"_source":["picture_id","product_id"]})
-    
+    try:    
+        with Elasticsearch([{"host": host, "port":"9200"}]) as es: 
+            res = es.search(index='similarity-search',body={"from":0,"size": 5,"query": script_query,"_source":["picture_id","product_id"]})
+    except Execption as e:
+        print(e)
+        
     cards = []
     for dic in res['hits']['hits']:
         prod_id = dic['_source']['product_id']
@@ -79,7 +81,8 @@ def randomizer():
     # return "Homepageview"
     img_dict = get_random_image()
     mainimg = url_process_imgdict(img_dict)
-    user_query = imread(io.BytesIO(img_dict["picture"]["picture"]))
+    with io.BytesIO(img_dict["picture"]["picture"]) as f
+        user_query = imread(f)
     user_query = get_image_vector(user_query)
     card_data = query_es(user_query)
 
@@ -87,7 +90,8 @@ def randomizer():
                              mainimg = mainimg, card_data = card_data)
 
 def url_process_imgdict(img_dict):
-    img = imread(io.BytesIO(img_dict["picture"]["picture"]))
+    with io.BytesIO(img_dict["picture"]["picture"]) as f
+        img = imread(f)
     img = get_base64_from_img(img)
     return img 
 
@@ -95,7 +99,8 @@ def url_process_imgdict(img_dict):
 @app.route('/randomImage', methods=['get','POST'])
 def randomImage():
     img_dict = get_random_image()
-    byte_io = io.BytesIO(img_dict["picture"]["picture"])
+    with io.BytesIO(img_dict["picture"]["picture"]) as f
+        byte_io = imread(f)
     # send_file(byte_io, attachment_filename='pic.png', mimetype='image/png')
     response = make_response(send_file(byte_io,mimetype='image/png'))
     response.headers['Content-Transfer-Encoding']='base64'
@@ -122,11 +127,11 @@ def upload_file():
         file = request.files['file']
         if file and allowed_file(file.filename):
             # filename = secure_filename(file.filename)
-            byte_io = io.BytesIO()
-            byte_io.write(file.read())
-            byte_io.seek(0)
+            with io.BytesIO() as byte_io:
+                byte_io.write(file.read())
+                byte_io.seek(0)
+                img_arr = imread(byte_io)
 
-            img_arr = imread(byte_io)
             img_arr = img_arr[:,:,:3]
             features = get_image_vector(img_arr)
             card_data = query_es(features)
@@ -148,10 +153,10 @@ def get_n_random_images(n):
 def get_base64_from_img(img_arr):
     plt.imshow(img_arr)
     plt.axis("off")
-    figfile = io.BytesIO()
-    plt.savefig(figfile, format='png')
-    figfile.seek(0)
-    figdata_png = base64.b64encode(figfile.getvalue()).decode("utf-8")
+    with io.BytesIO() as figfile:
+        plt.savefig(figfile, format='png')
+        figfile.seek(0)
+        figdata_png = base64.b64encode(figfile.getvalue()).decode("utf-8")
     return figdata_png
 
 def preprocess_img(img):

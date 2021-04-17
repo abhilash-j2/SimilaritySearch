@@ -83,7 +83,7 @@ def upload_file():
 
 
 def load_data():
-    with open("./data/final_data", "rb") as f:
+    with open("./webapp/data/final_data", "rb") as f:
         df = pickle.load(f)
     return df
 

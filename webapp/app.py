@@ -31,7 +31,9 @@ def load_data():
         df = pickle.load(f)
     return df
 
-
+with open("./webapp/data/lookup_df", "rb") as f:
+        lookup_df = pickle.load(f)
+# print(lookup_df.head())
 df = load_data()
 host = os.environ["ELASTIC_HOST"]
 print(host)
@@ -72,7 +74,37 @@ def homepage():
     # return "Homepageview"
     return render_template('homepage.html')
 
+def get_image_for_pid(pid):
+    return df[df["picture_id"] == pid].to_dict("records")[0]
+
+def get_random_neighbours():
+    master_pi = np.random.choice(list(set(lookup_df["master_pi"])), size=1)[0]
+    # print(f"== master pi {master_pi}")
+    nns = lookup_df[lookup_df["master_pi"] == master_pi]
+    return nns
+
+def construct_card_data(nns):
+    cards = []
+    for row in nns.itertuples():
+        img_dict = get_image_for_pid(row.similar_pi)
+        img = url_process_imgdict(img_dict)
+
+        cards.append({"prod_id" : img_dict["product_id"], 
+                      "pic_id" : img_dict["picture_id"], 
+                      "score":row.similarity, 
+                      "img" : img})
+    return cards
+
 @app.route('/randomizer')
+def quick_randomizer():
+    nns = get_random_neighbours()
+    img_dict = get_image_for_pid(list(set(nns.master_pi))[0])
+    mainimg = url_process_imgdict(img_dict)
+    card_data = construct_card_data(nns)
+    return render_template('randomizer.html',pid=img_dict["product_id"]   ,
+                             mainimg = mainimg, card_data = card_data)
+
+
 def randomizer():
     # return "Homepageview"
     img_dict = get_random_image()
@@ -160,7 +192,7 @@ MODEL_URL = os.environ["IMAGE_MODEL_URL"]
 def get_image_vector(image):
     dictToSend = {"image":image.tolist()}
     res = requests.post(MODEL_URL, json=dictToSend)
-    print (('response from server:',res.text))
+    # print (('response from server:',res.text))
     dictFromServer = res.json()
     return dictFromServer["features"]
 
